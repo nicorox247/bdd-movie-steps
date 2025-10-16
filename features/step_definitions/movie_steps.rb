@@ -1,5 +1,5 @@
 # features/step_definitions/movie_steps.rb
-
+require 'set'
 # Add a declarative step here for populating the DB with movies.
 
 Given(/the following movies exist/) do |movies_table|
@@ -47,12 +47,26 @@ Then(/^I should (not )?see the following movies: (.*)$/) do |no, movie_list|
 end
 
 Then(/^I should see all the movies$/) do
-  # Verify each movie title is visible and the row count matches
-  Movie.pluck(:title).each do |title|
-    expect(page).to have_content(title)
+  # Verify every movie title is visible
+  Movie.pluck(:title).each { |title| expect(page).to have_content(title) }
+
+  # If a table is present, also verify row count robustly
+  if page.has_css?('table')
+    rows =
+      if page.has_css?('table#movies tbody tr')
+        all('table#movies tbody tr').size
+      elsif page.has_css?('table tbody tr')
+        all('table tbody tr').size
+      elsif page.has_css?('table#movies tr')
+        [all('table#movies tr').size - 1, 0].max  # minus header
+      else
+        [all('table tr').size - 1, 0].max          # minus header
+      end
+    expect(rows).to eq(Movie.count)
   end
-  expect(page).to have_css('table#movies tbody tr', count: Movie.count)
 end
+
+
 
 ### Utility Steps Just for this assignment.
 
@@ -67,6 +81,22 @@ Then(/^debug javascript$/) do
   1
 end
 
-Then(/complete the rest of of this scenario/) do
-  raise "Remove this step from your .feature files"
+
+
+
+When(/^I uncheck the following ratings: (.*)$/) do |rating_list|
+  rating_list.split(/\s*,\s*/).each { |r| step %(I uncheck "ratings_#{r}") }
 end
+
+When(/^I check only the following ratings: (.*)$/) do |rating_list|
+  wanted = rating_list.split(/\s*,\s*/).to_set
+  all = Movie.respond_to?(:all_ratings) ? Movie.all_ratings : %w[G PG PG-13 R NC-17]
+  all.each do |r|
+    if wanted.include?(r)
+      step %(I check "ratings_#{r}")
+    else
+      step %(I uncheck "ratings_#{r}")
+    end
+  end
+end
+

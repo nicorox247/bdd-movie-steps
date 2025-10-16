@@ -1,11 +1,11 @@
+# features/step_definitions/movie_steps.rb
+
 # Add a declarative step here for populating the DB with movies.
 
 Given(/the following movies exist/) do |movies_table|
   movies_table.hashes.each do |movie|
-    # each returned element will be a hash whose key is the table header.
     Movie.create!(movie)
   end
-  pending "Fill in this step in movie_steps.rb"
 end
 
 Then(/(.*) seed movies should exist/) do |n_seeds|
@@ -16,50 +16,57 @@ end
 #   on the same page
 
 Then(/^I should see "(.*)" before "(.*)" in the movie list$/) do |e1, e2|
-  #  ensure that that e1 occurs before e2.
-  #  page.body is the entire content of the page as a string.
-  pending "Fill in this step in movie_steps.rb"
+  # Restrict to the movies table if present; otherwise fall back to whole page
+  html = if page.has_css?('table#movies')
+           find('table#movies').text
+         else
+           page.body
+         end
+  re = /#{Regexp.escape(e1)}.*#{Regexp.escape(e2)}/m
+  expect(html).to match(re)
 end
 
-
 # Make it easier to express checking or unchecking several boxes at once
-#  "When I check only the following ratings: PG, G, R"
+#  "When I check the following ratings: PG, G, R"
 
 When(/I check the following ratings: (.*)/) do |rating_list|
-  # HINT: use String#split to split up the rating_list, then
-  #   iterate over the ratings and reuse the "When I check..." or
-  #   "When I uncheck..." steps in lines 89-95 of web_steps.rb
-  pending "Fill in this step in movie_steps.rb"
+  rating_list.split(/\s*,\s*/).each do |rating|
+    step %(I check "ratings_#{rating}")
+  end
 end
 
 Then(/^I should (not )?see the following movies: (.*)$/) do |no, movie_list|
-  # Take a look at web_steps.rb Then /^(?:|I )should see "([^"]*)"$/
-  pending "Fill in this step in movie_steps.rb"
+  titles = movie_list.split(/\s*,\s*/)
+  titles.each do |title|
+    if no
+      step %(I should not see "#{title}")
+    else
+      step %(I should see "#{title}")
+    end
+  end
 end
 
 Then(/^I should see all the movies$/) do
-  # Make sure that all the movies in the app are visible in the table
-  pending "Fill in this step in movie_steps.rb"
+  # Verify each movie title is visible and the row count matches
+  Movie.pluck(:title).each do |title|
+    expect(page).to have_content(title)
+  end
+  expect(page).to have_css('table#movies tbody tr', count: Movie.count)
 end
 
 ### Utility Steps Just for this assignment.
 
 Then(/^debug$/) do
-  # Use this to write "Then debug" in your scenario to open a console.
   require "byebug"
   byebug
   1 # intentionally force debugger context in this method
 end
 
 Then(/^debug javascript$/) do
-  # Use this to write "Then debug" in your scenario to open a JS console
   page.driver.debugger
   1
 end
 
 Then(/complete the rest of of this scenario/) do
-  # This shows you what a basic cucumber scenario looks like.
-  # You should leave this block inside movie_steps, but replace
-  # the line in your scenarios with the appropriate steps.
   raise "Remove this step from your .feature files"
 end

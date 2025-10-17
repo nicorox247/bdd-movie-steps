@@ -15,16 +15,23 @@ end
 # Make sure that one string (regexp) occurs before or after another one
 #   on the same page
 
-Then(/^I should see "(.*)" before "(.*)" in the movie list$/) do |e1, e2|
-  # Restrict to the movies table if present; otherwise fall back to whole page
-  html = if page.has_css?('table#movies')
-           find('table#movies').text
-         else
-           page.body
-         end
-  re = /#{Regexp.escape(e1)}.*#{Regexp.escape(e2)}/m
-  expect(html).to match(re)
+# Order check: e.g., Then I should see "Aladdin" before "Amelie"
+Then(/^I should see "(.*?)" before "(.*?)"(?: in the movie list)?$/) do |first, second|
+  scope_text =
+    if page.has_css?('table#movies')
+      find('table#movies').text
+    else
+      page.body
+    end
+
+  i1 = scope_text.index(first)
+  i2 = scope_text.index(second)
+
+  expect(i1).not_to be_nil,  %Q{Expected to find "#{first}" on the page, but didn't.}
+  expect(i2).not_to be_nil,  %Q{Expected to find "#{second}" on the page, but didn't.}
+  expect(i1).to be < i2,     %Q{Expected "#{first}" to appear before "#{second}", but it did not.}
 end
+
 
 # Make it easier to express checking or unchecking several boxes at once
 #  "When I check the following ratings: PG, G, R"
